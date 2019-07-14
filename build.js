@@ -3,6 +3,7 @@ const moment = require('moment');
 const path = require('path');
 const console = require('console');
 const os = require('os');
+const fs = require('fs');
 
 const buildTime = moment().format('HH:mm:ss DD/MM/YYYY');
 
@@ -31,6 +32,7 @@ const build = (osVersion, netVersion) => {
   shell.cd('asch');
   shell.pwd();
   shell.mkdir('-p', 'public/dist', 'chains', 'tmp', 'logs', 'bin', 'data');
+  const version = JSON.parse(fs.readFileSync('./package.json', 'utf-8')).version;
 
   if (netVersion !== 'localnet') {
     shell.sed('-i', 'testnet', netVersion, `aschd`);
@@ -63,6 +65,15 @@ const build = (osVersion, netVersion) => {
   shell.exec(`rm -rf asch`);
   shell.exec('rm -rf asch-frontend-2');
 
+  // Generate metadata file
+  if (netVersion !== 'localnet') {
+    shell.exec(`touch metadata_upgrade_${netVersion}.txt`);
+    shell.exec(`echo asch-linux-latest-${netVersion}.tar.gz >> metadata_upgrade_${netVersion}.txt`);
+    shell.exec(`md5sum asch-linux-latest-${netVersion}.tar.gz | cut -d ' ' -f 1 >> metadata_upgrade_${netVersion}.txt`);
+    shell.exec(`echo ${buildTime} >> metadata_upgrade_${netVersion}.txt`);
+    shell.exec(`echo ${version} >> metadata_upgrade_${netVersion}.txt`);
+    shell.exec(`ls -l asch-linux-latest-${netVersion}.tar.gz  | cut -d ' ' -f 5 >> metadata_upgrade_${netVersion}.txt`)
+  }
 }
 
 if (process.argv.length < 3) {
